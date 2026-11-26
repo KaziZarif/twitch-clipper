@@ -12,7 +12,7 @@ import websockets
 IRC_URI = "wss://irc-ws.chat.twitch.tv:443"
 
 # sWAP WITH ANY LIVE STREAMER'S LOWERCASE USERNAME
-CHANNELS = ["fallenshadow", "jerma985", "missmikkaa"]
+CHANNELS = ["ironmouse", "loya", "peter"]
 
 OUTPUT_PATH = Path("data/chat_dump.jsonl")
 
@@ -248,7 +248,7 @@ class ChatCollector:
                 while True:
                     nick = f"justinfan{random.randint(10000, 99999)}"
                     try:
-                        async with websockets.connect(IRC_URI, ping_interval=None) as ws:
+                        async with websockets.connect(IRC_URI, ping_interval=30, ping_timeout=20) as ws:
                             await ws.send("CAP REQ :twitch.tv/tags twitch.tv/commands")
                             await ws.send("PASS SCHMOOPIIE")
                             await ws.send(f"NICK {nick}")
@@ -260,7 +260,8 @@ class ChatCollector:
                             print(f"Connected as {nick} | Recording {len(self.channels)} channels -> {self.output_path}")
                             last_status = time.monotonic()
 
-                            async for raw_frame in ws:
+                            while True:
+                                raw_frame = await asyncio.wait_for(ws.recv(), timeout=90.0)
                                 reconnect_requested = False
 
                                 for line in raw_frame.split("\r\n"):
